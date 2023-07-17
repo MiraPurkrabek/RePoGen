@@ -1,0 +1,1 @@
+Download and extract the SMPL-X models here. See instrauctions [here](https://github.com/vchoutas/smplx#downloading-the-model).
