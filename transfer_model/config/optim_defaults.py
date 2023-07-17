@@ -1,0 +1,61 @@
+# -*- coding: utf-8 -*-
+
+# This is a modified version of the original code from
+# the SMPL-X repository. The original code is available at
+# https://github.com/vchoutas/smplx. Please note that the
+# original code is free to use only for
+# NON-COMMERCIAL SCIENTIFIC RESEARCH PURPOSES. For more info,
+# please see the LICENSE section of the README.
+
+from typing import Tuple
+from omegaconf import OmegaConf
+from dataclasses import dataclass
+
+
+@dataclass
+class LBFGS:
+    line_search_fn: str = "strong_wolfe"
+    max_iter: int = 50
+
+
+@dataclass
+class SGD:
+    momentum: float = 0.9
+    nesterov: bool = True
+
+
+@dataclass
+class ADAM:
+    betas: Tuple[float, float] = (0.9, 0.999)
+    eps: float = 1e-08
+    amsgrad: bool = False
+
+
+@dataclass
+class RMSProp:
+    alpha: float = 0.99
+
+
+@dataclass
+class TrustRegionNewtonCG:
+    max_trust_radius: float = 1000
+    initial_trust_radius: float = 0.05
+    eta: float = 0.15
+    gtol: float = 1e-05
+
+
+@dataclass
+class OptimConfig:
+    type: str = "trust-ncg"
+    lr: float = 1.0
+    gtol: float = 1e-8
+    ftol: float = -1.0
+    maxiters: int = 100
+
+    lbfgs: LBFGS = LBFGS()
+    sgd: SGD = SGD()
+    adam: ADAM = ADAM()
+    trust_ncg: TrustRegionNewtonCG = TrustRegionNewtonCG()
+
+
+conf = OmegaConf.structured(OptimConfig)
