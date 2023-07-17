@@ -23,15 +23,24 @@ from .defaults import conf as default_conf
 def parse_args(argv=None) -> OmegaConf:
     arg_formatter = argparse.ArgumentDefaultsHelpFormatter
 
-    description = 'Model transfer script'
-    parser = argparse.ArgumentParser(formatter_class=arg_formatter,
-                                     description=description)
+    description = "Model transfer script"
+    parser = argparse.ArgumentParser(
+        formatter_class=arg_formatter, description=description
+    )
 
-    parser.add_argument('--exp-cfg', type=str, dest='exp_cfg',
-                        help='The configuration of the experiment')
-    parser.add_argument('--exp-opts', default=[], dest='exp_opts',
-                        nargs='*',
-                        help='Command line arguments')
+    parser.add_argument(
+        "--exp-cfg",
+        type=str,
+        dest="exp_cfg",
+        help="The configuration of the experiment",
+    )
+    parser.add_argument(
+        "--exp-opts",
+        default=[],
+        dest="exp_opts",
+        nargs="*",
+        help="Command line arguments",
+    )
 
     cmd_args = parser.parse_args()
 

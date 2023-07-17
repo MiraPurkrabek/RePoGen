@@ -6,4 +6,3 @@
 # original code is free to use only for
 # NON-COMMERCIAL SCIENTIFIC RESEARCH PURPOSES. For more info,
 # please see the LICENSE section of the README.
-

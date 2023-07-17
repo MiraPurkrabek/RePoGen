@@ -25,24 +25,19 @@ from .typing import Tensor
 
 
 def rotation_matrix_to_cont_repr(x: Tensor) -> Tensor:
-    assert len(x.shape) == 3, (
-        f'Expects an array of size Bx3x3, but received {x.shape}')
+    assert len(x.shape) == 3, f"Expects an array of size Bx3x3, but received {x.shape}"
     return x[:, :3, :2]
 
 
-def cont_repr_to_rotation_matrix(
-    x: Tensor
-) -> Tensor:
-    ''' Converts tensor in continous representation to rotation matrices
-    '''
+def cont_repr_to_rotation_matrix(x: Tensor) -> Tensor:
+    """Converts tensor in continous representation to rotation matrices"""
     batch_size = x.shape[0]
     reshaped_input = x.view(-1, 3, 2)
 
     # Normalize the first vector
     b1 = F.normalize(reshaped_input[:, :, 0].clone(), dim=1)
 
-    dot_prod = torch.sum(
-        b1 * reshaped_input[:, :, 1].clone(), dim=1, keepdim=True)
+    dot_prod = torch.sum(b1 * reshaped_input[:, :, 1].clone(), dim=1, keepdim=True)
     # Compute the second vector by finding the orthogonal complement to it
     b2 = F.normalize(reshaped_input[:, :, 1] - dot_prod * b1, dim=1)
     # Finish building the basis by taking the cross product
@@ -52,22 +47,20 @@ def cont_repr_to_rotation_matrix(
     return rot_mats.view(batch_size, -1, 3, 3)
 
 
-def batch_rodrigues(
-    rot_vecs: Tensor,
-    epsilon: float = 1e-8
-) -> Tensor:
-    ''' Calculates the rotation matrices for a batch of rotation vectors
-        Parameters
-        ----------
-        rot_vecs: torch.tensor Nx3
-            array of N axis-angle vectors
-        Returns
-        -------
-        R: torch.tensor Nx3x3
-            The rotation matrices for the given axis-angle parameters
-    '''
-    assert len(rot_vecs.shape) == 2, (
-        f'Expects an array of size Bx3, but received {rot_vecs.shape}')
+def batch_rodrigues(rot_vecs: Tensor, epsilon: float = 1e-8) -> Tensor:
+    """Calculates the rotation matrices for a batch of rotation vectors
+    Parameters
+    ----------
+    rot_vecs: torch.tensor Nx3
+        array of N axis-angle vectors
+    Returns
+    -------
+    R: torch.tensor Nx3x3
+        The rotation matrices for the given axis-angle parameters
+    """
+    assert (
+        len(rot_vecs.shape) == 2
+    ), f"Expects an array of size Bx3, but received {rot_vecs.shape}"
 
     batch_size = rot_vecs.shape[0]
     device = rot_vecs.device
@@ -84,17 +77,16 @@ def batch_rodrigues(
     K = torch.zeros((batch_size, 3, 3), dtype=dtype, device=device)
 
     zeros = torch.zeros((batch_size, 1), dtype=dtype, device=device)
-    K = torch.cat([zeros, -rz, ry, rz, zeros, -rx, -ry, rx, zeros], dim=1) \
-        .view((batch_size, 3, 3))
+    K = torch.cat([zeros, -rz, ry, rz, zeros, -rx, -ry, rx, zeros], dim=1).view(
+        (batch_size, 3, 3)
+    )
 
     ident = torch.eye(3, dtype=dtype, device=device).unsqueeze(dim=0)
     rot_mat = ident + sin * K + (1 - cos) * torch.bmm(K, K)
     return rot_mat
 
 
-def batch_rot2aa(
-    Rs: Tensor, epsilon: float = 1e-7
-) -> Tensor:
+def batch_rot2aa(Rs: Tensor, epsilon: float = 1e-7) -> Tensor:
     """
     Rs is B x 3 x 3
     void cMathUtil::RotMatToAxisAngle(const tMatrix& mat, tVector& out_axis,
@@ -123,7 +115,7 @@ def batch_rot2aa(
     }
     """
 
-    cos = 0.5 * (torch.einsum('bii->b', [Rs]) - 1)
+    cos = 0.5 * (torch.einsum("bii->b", [Rs]) - 1)
     cos = torch.clamp(cos, -1 + epsilon, 1 - epsilon)
 
     theta = torch.acos(cos)

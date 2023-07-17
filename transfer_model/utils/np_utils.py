@@ -22,6 +22,6 @@ def max_grad_change(grad_arr):
 
 
 def to_np(array, dtype=np.float32):
-    if hasattr(array, 'todense'):
+    if hasattr(array, "todense"):
         array = array.todense()
     return np.array(array, dtype=dtype)

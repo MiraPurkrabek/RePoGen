@@ -6,28 +6,25 @@ import pickle
 from scipy.spatial.transform import Rotation as R
 
 KEYS = [
-"transl",
-"global_orient",
-"body_pose",
-"betas",
-"left_hand_pose",
-"right_hand_pose",
-"jaw_pose",
-"leye_pose",
-"reye_pose",
-"expression",
-"vertices",
-"joints",
-"full_pose",
-"v_shaped",
-"faces"
+    "transl",
+    "global_orient",
+    "body_pose",
+    "betas",
+    "left_hand_pose",
+    "right_hand_pose",
+    "jaw_pose",
+    "leye_pose",
+    "reye_pose",
+    "expression",
+    "vertices",
+    "joints",
+    "full_pose",
+    "v_shaped",
+    "faces",
 ]
 
-IGNORED_KEYS = [
-"vertices",
-"faces",
-"v_shaped"
-]
+IGNORED_KEYS = ["vertices", "faces", "v_shaped"]
+
 
 def aggregate_rotmats(x):
     x = torch.cat(x, dim=0).detach().numpy()
@@ -36,11 +33,20 @@ def aggregate_rotmats(x):
     x = x.reshape(s[0], -1)
     return x
 
+
 aggregate_function = {k: lambda x: torch.cat(x, 0).detach().numpy() for k in KEYS}
 aggregate_function["betas"] = lambda x: torch.cat(x, 0).mean(0).detach().numpy()
 
-for k in ["global_orient", "body_pose", "left_hand_pose", "right_hand_pose", "jaw_pose", "full_pose"]:
+for k in [
+    "global_orient",
+    "body_pose",
+    "left_hand_pose",
+    "right_hand_pose",
+    "jaw_pose",
+    "full_pose",
+]:
     aggregate_function[k] = aggregate_rotmats
+
 
 def merge(output_dir, gender):
     output_dir = Path(output_dir)
@@ -79,10 +85,21 @@ def merge(output_dir, gender):
     with open(output_dir / "merged.pkl", "wb") as f:
         pickle.dump(merged, f)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Merge output of transfer_model script')
-    parser.add_argument('output_dir', type=str, help='output directory of transfer_model script')
-    parser.add_argument('--gender', type=str, choices=['male', 'female', 'neutral'], help='gender of actor in motion sequence')
+
+    parser = argparse.ArgumentParser(
+        description="Merge output of transfer_model script"
+    )
+    parser.add_argument(
+        "output_dir", type=str, help="output directory of transfer_model script"
+    )
+    parser.add_argument(
+        "--gender",
+        type=str,
+        choices=["male", "female", "neutral"],
+        help="gender of actor in motion sequence",
+    )
     args = parser.parse_args()
     merge(args.output_dir, args.gender)

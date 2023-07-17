@@ -16,7 +16,7 @@ from dataclasses import dataclass, make_dataclass
 
 @dataclass
 class LossTemplate:
-    type: str = 'l2'
+    type: str = "l2"
     active: bool = False
     weight: Tuple[float] = (0.0,)
     requires_grad: bool = True
@@ -25,7 +25,7 @@ class LossTemplate:
 
 @dataclass
 class LossConfig:
-    type: str = 'smplify-x'
+    type: str = "smplify-x"
 
 
 conf = OmegaConf.structured(LossConfig)

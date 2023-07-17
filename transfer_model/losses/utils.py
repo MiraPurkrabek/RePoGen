@@ -9,12 +9,13 @@
 
 import torch
 
-def get_reduction_method(reduction='mean'):
-    if reduction == 'mean':
+
+def get_reduction_method(reduction="mean"):
+    if reduction == "mean":
         return torch.mean
-    elif reduction == 'sum':
+    elif reduction == "sum":
         return torch.sum
-    elif reduction == 'none':
+    elif reduction == "none":
         return lambda x: x
     else:
-        raise ValueError('Unknown reduction method: {}'.format(reduction))
+        raise ValueError("Unknown reduction method: {}".format(reduction))

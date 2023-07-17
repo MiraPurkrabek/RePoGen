@@ -24,27 +24,25 @@ from loguru import logger
 
 class MeshFolder(Dataset):
     def __init__(
-        self,
-        data_folder: str,
-        transforms=None,
-        exts: Optional[Tuple] = None
+        self, data_folder: str, transforms=None, exts: Optional[Tuple] = None
     ) -> None:
-        ''' Dataset similar to ImageFolder that reads meshes with the same
-            topology
-        '''
+        """Dataset similar to ImageFolder that reads meshes with the same
+        topology
+        """
         if exts is None:
-            exts = ['.obj', '.ply']
+            exts = [".obj", ".ply"]
 
         self.data_folder = osp.expandvars(data_folder)
 
-        logger.info(
-            f'Building mesh folder dataset for folder: {self.data_folder}')
+        logger.info(f"Building mesh folder dataset for folder: {self.data_folder}")
 
-        self.data_paths = np.array([
-            osp.join(self.data_folder, fname)
-            for fname in os.listdir(self.data_folder)
-            if any(fname.endswith(ext) for ext in exts)
-        ])
+        self.data_paths = np.array(
+            [
+                osp.join(self.data_folder, fname)
+                for fname in os.listdir(self.data_folder)
+                if any(fname.endswith(ext) for ext in exts)
+            ]
+        )
         self.num_items = len(self.data_paths)
 
     def __len__(self) -> int:
@@ -57,8 +55,8 @@ class MeshFolder(Dataset):
         mesh = trimesh.load(mesh_path, process=False)
 
         return {
-            'vertices': np.asarray(mesh.vertices, dtype=np.float32),
-            'faces': np.asarray(mesh.faces, dtype=np.int32),
-            'indices': index,
-            'paths': mesh_path,
+            "vertices": np.asarray(mesh.vertices, dtype=np.float32),
+            "faces": np.asarray(mesh.faces, dtype=np.int32),
+            "indices": index,
+            "paths": mesh_path,
         }

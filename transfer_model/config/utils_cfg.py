@@ -19,4 +19,4 @@ class Variable:
 
 @dataclass
 class Pose(Variable):
-    type: str = 'aa'
+    type: str = "aa"

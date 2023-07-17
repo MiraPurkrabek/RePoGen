@@ -12,9 +12,9 @@ import numpy as np
 import torch
 
 __all__ = [
-    'Tensor',
-    'Array',
+    "Tensor",
+    "Array",
 ]
 
-Tensor = NewType('Tensor', torch.Tensor)
-Array = NewType('Array', np.ndarray)
+Tensor = NewType("Tensor", torch.Tensor)
+Array = NewType("Array", np.ndarray)

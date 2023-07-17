@@ -77,17 +77,17 @@ class FLAME:
 
 @dataclass
 class BodyModelConfig:
-    model_type: str = 'smplx'
+    model_type: str = "smplx"
     use_compressed: bool = True
-    folder: str = 'models'
-    gender: str = 'neutral'
-    extra_joint_path: str = ''
-    ext: str = 'npz'
+    folder: str = "models"
+    gender: str = "neutral"
+    extra_joint_path: str = ""
+    ext: str = "npz"
 
     num_expression_coeffs: int = 10
 
     use_face_contour: bool = True
-    joint_regressor_path: str = ''
+    joint_regressor_path: str = ""
 
     smpl: SMPL = SMPL()
     star: SMPL = SMPL()

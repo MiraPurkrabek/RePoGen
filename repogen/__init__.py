@@ -22,7 +22,7 @@ from .body_models import (
     FLAMELayer,
 )
 
-from .joint_names import(
+from .joint_names import (
     COCO_JOINTS,
     COCO_SKELETON,
 )

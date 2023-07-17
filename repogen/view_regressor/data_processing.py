@@ -11,7 +11,7 @@ def c2s(pts, use_torch=False):
     if use_torch:
         r = torch.norm(pts, dim=1)
         theta = torch.atan2(
-            torch.sqrt(x*x + y*y),
+            torch.sqrt(x * x + y * y),
             z,
         )
         phi = torch.atan2(y, x)
@@ -19,7 +19,7 @@ def c2s(pts, use_torch=False):
     else:
         r = np.linalg.norm(pts, axis=1)
         theta = np.arctan2(
-            np.sqrt(x*x + y*y),
+            np.sqrt(x * x + y * y),
             z,
         )
         phi = np.arctan2(y, x)
@@ -43,9 +43,9 @@ def s2c(pts, use_torch=False):
     else:
         if use_torch:
             theta, phi = torch.unbind(pts, dim=1)
-            r = torch.ones(pts.shape[0]).to(theta.device) # If no radius given, use 1
+            r = torch.ones(pts.shape[0]).to(theta.device)  # If no radius given, use 1
         else:
-            r = np.ones(pts.shape[0]) # If no radius given, use 1
+            r = np.ones(pts.shape[0])  # If no radius given, use 1
             theta = pts[:, 0]
             phi = pts[:, 1]
 
@@ -55,12 +55,14 @@ def s2c(pts, use_torch=False):
     return fn.stack([x, y, z], axis=1)
 
 
-def load_data_from_coco_file(coco_filepath, views_filepath=None, remove_limbs=False, num_visible_keypoints=4):
+def load_data_from_coco_file(
+    coco_filepath, views_filepath=None, remove_limbs=False, num_visible_keypoints=4
+):
     coco_dict = json.load(open(coco_filepath, "r"))
     image_ids = []
     keypoints = []
     bboxes_xywh = []
-    
+
     if not views_filepath is None:
         views_dict = json.load(open(views_filepath, "r"))
         positions = []
@@ -90,7 +92,7 @@ def load_data_from_coco_file(coco_filepath, views_filepath=None, remove_limbs=Fa
 
         # At least 4 keypoints must be visible
         vis_mask = kpts[2::3] > 1
-        if np.sum(vis_mask) < (num_visible_keypoints-1):
+        if np.sum(vis_mask) < (num_visible_keypoints - 1):
             continue
 
         image_ids.append(image_id)
@@ -104,7 +106,7 @@ def load_data_from_coco_file(coco_filepath, views_filepath=None, remove_limbs=Fa
     keypoints = np.array(keypoints)
     bboxes_xywh = np.array(bboxes_xywh)
     image_ids = np.array(image_ids).squeeze()
-    
+
     if not views_filepath is None:
         positions = np.array(positions)
         return keypoints, bboxes_xywh, image_ids, positions
@@ -112,7 +114,14 @@ def load_data_from_coco_file(coco_filepath, views_filepath=None, remove_limbs=Fa
     return keypoints, bboxes_xywh, image_ids
 
 
-def process_keypoints(keypoints, bboxes, add_visibility=False, add_bboxes=True, normalize=True, remove_limbs=False):
+def process_keypoints(
+    keypoints,
+    bboxes,
+    add_visibility=False,
+    add_bboxes=True,
+    normalize=True,
+    remove_limbs=False,
+):
     """
     Process the keypoints to minimize the domain gap between synthetic and COCO keypoints.
     1. Normalize the keypoints to be in the range [0, 1] with respect to the bounding box
@@ -123,7 +132,7 @@ def process_keypoints(keypoints, bboxes, add_visibility=False, add_bboxes=True, 
     num_keypoints = 17
 
     keypoints = np.reshape(keypoints, (-1, num_keypoints, 3)).astype(np.float32)
-    
+
     # Normalize the keypoints to be in the range [0, 1] with respect to the bounding box
     bboxes = bboxes[:, None, :]
     if normalize:
@@ -145,26 +154,25 @@ def process_keypoints(keypoints, bboxes, add_visibility=False, add_bboxes=True, 
             keypoints = np.concatenate([keypoints, bboxes[:, :, 2:].squeeze()], axis=1)
         else:
             keypoints = np.concatenate([keypoints, bboxes[:, :, 2:]], axis=1)
-    
+
     # Reshape the keypoints to be a 1D array
     keypoints = np.reshape(keypoints, (num_samples, -1))
     print("Keypoints shape:", keypoints.shape)
-    
+
     # for coor in range(keypoints.shape[1]):
     #     print("Coordinate {:d}: min={:.3f}, max={:.3f}".format(coor, np.min(keypoints[:, coor]), np.max(keypoints[:, coor])))
-    
+
     return keypoints
 
 
 def occlude_random_keypoints(
-        keypoints,
-        min_num_keypoints=8,
-        has_bbox=True,
-    ):
+    keypoints,
+    min_num_keypoints=8,
+    has_bbox=True,
+):
     """
     Occlude a random subset of keypoints.
     """
-
 
     keypoints = np.reshape(keypoints.copy(), (-1, 2))
     if has_bbox:
@@ -174,28 +182,28 @@ def occlude_random_keypoints(
     valid_keypoints = keypoints[keypoints[:, 0] > 0, :]
 
     num_keypoints = valid_keypoints.shape[0]
-    num_keypoints_to_keep = np.random.randint(min_num_keypoints, num_keypoints+1)
+    num_keypoints_to_keep = np.random.randint(min_num_keypoints, num_keypoints + 1)
 
     # Randomly select keypoints to occlude
     occlude_mask = np.ones(num_keypoints, dtype=bool)
     occlude_mask[:num_keypoints_to_keep] = False
     np.random.shuffle(occlude_mask)
-    
+
     valid_keypoints[occlude_mask, :] = 0
     keypoints[keypoints[:, 0] > 0, :] = valid_keypoints
 
     if has_bbox:
         keypoints = np.concatenate([keypoints, bbox[None, :]], axis=0)
-    
+
     keypoints = keypoints.flatten()
     return keypoints
 
 
 def occlude_keypoints_with_rectangle(
-        keypoints,
-        min_num_keypoints=8,
-        has_bbox=True,
-    ):
+    keypoints,
+    min_num_keypoints=8,
+    has_bbox=True,
+):
     """
     Occlude a random subset of keypoints with a rectangle.
     """
@@ -205,8 +213,8 @@ def occlude_keypoints_with_rectangle(
         keypoints = keypoints[:-1, :]
 
     num_keypoints = np.sum(keypoints[:, 0] > 0)
-    num_keypoints_to_keep = np.random.randint(min_num_keypoints, num_keypoints+1)
-    
+    num_keypoints_to_keep = np.random.randint(min_num_keypoints, num_keypoints + 1)
+
     # Select a random point and occlude X nearest keypoints
     random_pt = np.random.rand(2)
     dists = np.linalg.norm(keypoints - random_pt, axis=1)
@@ -216,12 +224,14 @@ def occlude_keypoints_with_rectangle(
 
     if has_bbox:
         keypoints = np.concatenate([keypoints, bbox[None, :]], axis=0)
-    
+
     keypoints = keypoints.flatten()
     return keypoints
 
 
-def randomly_occlude_keypoints(keypoints, has_bbox=True, min_num_keypoints=6, rectangle_pst=0.3, occlusion_pst=0.1):
+def randomly_occlude_keypoints(
+    keypoints, has_bbox=True, min_num_keypoints=6, rectangle_pst=0.3, occlusion_pst=0.1
+):
     """
     Randomly occlude keypoints with either a rectangle or random points.
     """
@@ -249,23 +259,27 @@ def randomly_occlude_keypoints(keypoints, has_bbox=True, min_num_keypoints=6, re
             num_valid_keypoints = np.sum(keypoints[:-1, 0] > 0)
         else:
             num_valid_keypoints = np.sum(keypoints[:, 0] > 0)
-        
+
         if num_valid_keypoints > min_num_keypoints:
             random_action = np.random.choice(
                 ["rectangle", "occlusion", None],
-                p=[rectangle_pst, occlusion_pst, 1-(rectangle_pst+occlusion_pst)],
+                p=[rectangle_pst, occlusion_pst, 1 - (rectangle_pst + occlusion_pst)],
             )
 
             if random_action == "rectangle":
-                keypoints = occlude_keypoints_with_rectangle(keypoints, min_num_keypoints=min_num_keypoints, has_bbox=has_bbox)
+                keypoints = occlude_keypoints_with_rectangle(
+                    keypoints, min_num_keypoints=min_num_keypoints, has_bbox=has_bbox
+                )
             elif random_action == "occlusion":
-                keypoints = occlude_random_keypoints(keypoints, min_num_keypoints=min_num_keypoints, has_bbox=has_bbox)
+                keypoints = occlude_random_keypoints(
+                    keypoints, min_num_keypoints=min_num_keypoints, has_bbox=has_bbox
+                )
 
         keypoints = keypoints.flatten()
 
     if is_pytorch:
         keypoints = torch.from_numpy(keypoints)
-    
+
     return keypoints
 
 
@@ -302,8 +316,10 @@ def angular_distance(pts1, pts2, use_torch=False):
     # theta2 = clip(theta2, 0, np.pi)
     # phi1 = clip(phi1, -np.pi, np.pi)
     # phi2 = clip(phi2, -np.pi, np.pi)
-        
-    dist = acos(sin(theta1)*sin(theta2) + cos(theta1)*cos(theta2)*cos(phi1 - phi2))
+
+    dist = acos(
+        sin(theta1) * sin(theta2) + cos(theta1) * cos(theta2) * cos(phi1 - phi2)
+    )
 
     # Add radius difference - not sure if this helped any
     # if pts1.shape[1] == 3:
@@ -321,30 +337,36 @@ def angular_distance(pts1, pts2, use_torch=False):
 
 
 if __name__ == "__main__":
-
-    pts1 = np.array([
-        [0, 0, -1],
-        [0, 0, 1],
-        [0, 1, 0],
-        [1, 0, 0],
-        [0, -1, 0],
-        [1, 1, 0],
-        [1, 0, -1],
-    ], dtype=np.float32)
+    pts1 = np.array(
+        [
+            [0, 0, -1],
+            [0, 0, 1],
+            [0, 1, 0],
+            [1, 0, 0],
+            [0, -1, 0],
+            [1, 1, 0],
+            [1, 0, -1],
+        ],
+        dtype=np.float32,
+    )
     pts2 = np.zeros(pts1.shape, dtype=np.float32)
     pts2[:, -1] = 1
     d = angular_distance(c2s(pts1), c2s(pts2))
     d = d * 180 / np.pi
-    
+
     print("Distance of selected points on a unit sphere (in degrees):")
     for i in range(pts1.shape[0]):
         print("Points {} x {}:\t\t{:.3f}".format(pts1[i, :], pts2[i, :], d[i]))
-    
-    pts1 = np.random.normal(size = (100000, 3))
-    pts2 = np.random.normal(size = (100000, 3))
+
+    pts1 = np.random.normal(size=(100000, 3))
+    pts2 = np.random.normal(size=(100000, 3))
     d = angular_distance(c2s(pts1), c2s(pts2))
     d = d * 180 / np.pi
 
     print()
     print("Distance of random points on a unit sphere (in degrees):")
-    print("Min: {:.3f}, Mean: {:.3f}, Max: {:.3f}".format(np.min(d), np.mean(d), np.max(d)))
+    print(
+        "Min: {:.3f}, Mean: {:.3f}, Max: {:.3f}".format(
+            np.min(d), np.mean(d), np.max(d)
+        )
+    )

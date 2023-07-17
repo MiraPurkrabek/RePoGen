@@ -12,8 +12,8 @@ from dataclasses import dataclass, asdict, fields
 import numpy as np
 import torch
 
-Tensor = NewType('Tensor', torch.Tensor)
-Array = NewType('Array', np.ndarray)
+Tensor = NewType("Tensor", torch.Tensor)
+Array = NewType("Array", np.ndarray)
 
 
 @dataclass
@@ -89,9 +89,7 @@ def find_joint_kin_chain(joint_id, kinematic_tree):
     return kin_chain
 
 
-def to_tensor(
-        array: Union[Array, Tensor], dtype=torch.float32
-) -> Tensor:
+def to_tensor(array: Union[Array, Tensor], dtype=torch.float32) -> Tensor:
     if torch.is_tensor(array):
         return array
     else:
@@ -105,7 +103,7 @@ class Struct(object):
 
 
 def to_np(array, dtype=np.float32):
-    if 'scipy.sparse' in str(type(array)):
+    if "scipy.sparse" in str(type(array)):
         array = array.todense()
     return np.array(array, dtype=dtype)
 
@@ -114,6 +112,7 @@ def rot_mat_to_euler(rot_mats):
     # Calculates rotation matrix to euler angles
     # Careful for extreme cases of eular angles like [0.0, pi, 0.0]
 
-    sy = torch.sqrt(rot_mats[:, 0, 0] * rot_mats[:, 0, 0] +
-                    rot_mats[:, 1, 0] * rot_mats[:, 1, 0])
+    sy = torch.sqrt(
+        rot_mats[:, 0, 0] * rot_mats[:, 0, 0] + rot_mats[:, 1, 0] * rot_mats[:, 1, 0]
+    )
     return torch.atan2(-rot_mats[:, 2, 0], sy)
