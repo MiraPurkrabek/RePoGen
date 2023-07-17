@@ -30,6 +30,7 @@ The official repository of the RePoGen paper.
 
 ## News
 
+- 17 July 2023: Code released.
 - 17 July 2023: Datasets and weights released.
 - 16 July 2023: The Readme along with description is available. You can read the [paper](https://arxiv.org/abs/2307.06737) and see its [website](https://mirapurkrabek.github.io/RePoGen-paper/). The code is comming soon.
 
