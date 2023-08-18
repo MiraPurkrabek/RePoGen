@@ -1,6 +1,56 @@
 import numpy as np
 import torch
 
+JOINTS_LIMS_DEGS = {
+    "Left leg": [
+        (-90, 45),
+        (-50, 90),
+        (-30, 90),
+    ],
+    "Right leg": [
+        (-90, 45),
+        (-90, 50),
+        (-90, 30),
+    ],
+    "Torso": [
+        (0, 0),
+        (-40, 40),
+        (-20, 20),
+    ],
+    "Left knee": [(0, 150), (0, 0), (0, 0)],
+    "Right knee": [(0, 150), (0, 0), (0, 0)],
+    "Mid-torso": [(0, 20), (-30, 30), (-30, 30)],
+    "Left ankle": [(-20, 70), (-15, 5), (0, 20)],
+    "Right ankle": [(-20, 70), (-5, 15), (-20, 0)],
+    "Chest": [
+        (0, 0),
+        (-20, 20),
+        (-10, 10),
+    ],
+    "Left leg fingers": [(0, 0), (0, 0), (0, 0)],
+    "Right leg fingers": [(0, 0), (0, 0), (0, 0)],
+    "Neck": [(-45, 45), (-40, 40), (-20, 20)],
+    "Left neck": [(0, 0), (0, 0), (0, 0)],
+    "Right neck": [(0, 0), (0, 0), (0, 0)],
+    "Upper neck": [(-20, 20), (-30, 30), (-10, 10)],
+    "Left shoulder": [
+        # Changed to move 0 along the body
+        (-30, 30),
+        (-90, 20),
+        (-10, 140),
+    ],
+    "Right shoulder": [
+        # Changed to move 0 along the body
+        (-30, 30),
+        (-20, 90),
+        (-140, 10),
+    ],
+    "Left elbow": [(0, 0), (-120, 0), (0, 0)],
+    "Right elbow": [(0, 0), (0, 120), (0, 0)],
+    "Left wrist": [(-30, 30), (-10, 10), (-70, 90)],
+    "Right wrist": [(-30, 30), (-10, 10), (-90, 70)],
+}
+
 
 def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
     # Front rotation
@@ -35,62 +85,14 @@ def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
     }
     body_pose = torch.zeros((1, len(joints) * 3))
 
-    limits_deg = {
-        "Left leg": [
-            (-90, 45),
-            (-50, 90),
-            (-30, 90),
-        ],
-        "Right leg": [
-            (-90, 45),
-            (-90, 50),
-            (-90, 30),
-        ],
-        "Torso": [
-            (0, 0),
-            (-40, 40),
-            (-20, 20),
-        ],
-        "Left knee": [(0, 150), (0, 0), (0, 0)],
-        "Right knee": [(0, 150), (0, 0), (0, 0)],
-        "Mid-torso": [(0, 20), (-30, 30), (-30, 30)],
-        "Left ankle": [(-20, 70), (-15, 5), (0, 20)],
-        "Right ankle": [(-20, 70), (-5, 15), (-20, 0)],
-        "Chest": [
-            (0, 0),
-            (-20, 20),
-            (-10, 10),
-        ],
-        "Left leg fingers": [(0, 0), (0, 0), (0, 0)],
-        "Right leg fingers": [(0, 0), (0, 0), (0, 0)],
-        "Neck": [(-45, 45), (-40, 40), (-20, 20)],
-        "Left neck": [(0, 0), (0, 0), (0, 0)],
-        "Right neck": [(0, 0), (0, 0), (0, 0)],
-        "Upper neck": [(-20, 20), (-30, 30), (-10, 10)],
-        "Left shoulder": [
-            # Changed to move 0 along the body
-            (-30, 30),
-            (-90, 20),
-            (-10, 140),
-        ],
-        "Right shoulder": [
-            # Changed to move 0 along the body
-            (-30, 30),
-            (-20, 90),
-            (-140, 10),
-        ],
-        "Left elbow": [(0, 0), (-120, 0), (0, 0)],
-        "Right elbow": [(0, 0), (0, 120), (0, 0)],
-        "Left wrist": [(-30, 30), (-10, 10), (-70, 90)],
-        "Right wrist": [(-30, 30), (-10, 10), (-90, 70)],
-    }
+    
 
     if typical_pose is None:
         # Generate a completely random pose
         min_limits = []
         max_limits = []
 
-        for _, lims in limits_deg.items():
+        for _, lims in JOINTS_LIMS_DEGS.items():
             if len(lims) > 0:
                 for l in lims:
                     min_limits.append(l[0])
@@ -125,12 +127,12 @@ def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
         body_pose = random_angles.reshape((1, len(joints) * 3))
 
     elif typical_pose.lower() == "min":
-        for joint, lims in limits_deg.items():
+        for joint, lims in JOINTS_LIMS_DEGS.items():
             for li, l in enumerate(lims):
                 body_pose[0, joints[joint] * 3 + li] = l[0] / 180 * np.pi
 
     elif typical_pose.lower() == "max":
-        for joint, lims in limits_deg.items():
+        for joint, lims in JOINTS_LIMS_DEGS.items():
             for li, l in enumerate(lims):
                 body_pose[0, joints[joint] * 3 + li] = l[1] / 180 * np.pi
 

@@ -119,9 +119,14 @@ venv.bak/
 *.jpeg
 
 # Weights
+models/
 *.pt
 *.pth
 
 # Archive and logs
 logs/
 archive/
+
+# Output folders
+AMASS_stats/
+sampled_poses/

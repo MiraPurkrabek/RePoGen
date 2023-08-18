@@ -28,7 +28,6 @@ from repogen.joint_names import COCO_JOINTS, COCO_SKELETON
 from psbody.mesh import Mesh
 
 from repogen.random_pose.pose_and_view_generation import (
-    generate_pose,
     random_camera_pose,
 )
 from repogen.random_pose.visualizations import draw_depth, draw_pose
@@ -163,7 +162,7 @@ def get_textured_mesh(vertices, texture_path=None, args=None):
 
 
 def get_colored_mesh(vertices, faces, args):
-    with open("models/smplx/smplx_segmentation.json", "r") as fp:
+    with open("models/smplx/SMPLX_segmentation.json", "r") as fp:
         seg_dict = json.load(fp)
 
     # Default (= skin) color
@@ -197,6 +196,12 @@ def get_colored_mesh(vertices, faces, args):
 def main(args):
     shutil.rmtree(args.out_folder, ignore_errors=True)
     os.makedirs(args.out_folder, exist_ok=True)
+    
+    # Load the AMASS poses 3000 (in degrees)
+    amass_poses = np.load("AMASS_stats/sampled_poses_3000.npy")
+    amass_poses = amass_poses / 180 * np.pi
+    amass_poses = amass_poses.reshape((-1, 63))
+    
     if args.coco_format:
         os.makedirs(os.path.join(args.out_folder, "train2017"), exist_ok=True)
         os.makedirs(os.path.join(args.out_folder, "annotations"), exist_ok=True)
@@ -224,16 +229,15 @@ def main(args):
     background_list = os.listdir(backgrounds_folder)
 
     with tqdm(total=args.num_views * args.num_poses, ascii=True) as progress_bar:
-        for pose_i in range(args.num_poses):
+        with_replace = args.num_poses > len(amass_poses)
+        for pose_i in np.random.choice(len(amass_poses), args.num_poses, replace=with_replace):
             random_background_image = np.random.choice(background_list)
             background_image = cv2.imread(
                 os.path.join(backgrounds_folder, random_background_image)
             )
             background_image = cv2.resize(background_image, (1024, 1024))
 
-            if args.save_default_pose:
-                gndr = "male"
-            elif args.gender.upper() == "RANDOM":
+            if args.gender.upper() == "RANDOM":
                 gndr = np.random.choice(["male", "female", "neutral"])
             else:
                 gndr = args.gender
@@ -249,28 +253,18 @@ def main(args):
             )
 
             betas, expression = None, None
-            if args.sample_shape and not args.save_default_pose:
+            if args.sample_shape:
                 betas = torch.randn([1, model.num_betas], dtype=torch.float32)
-            if args.sample_expression and not args.save_default_pose:
+            if args.sample_expression:
                 expression = torch.randn(
                     [1, model.num_expression_coeffs], dtype=torch.float32
                 )
 
             hand_pose = model.left_hand_pose
-            if args.save_default_pose:
-                body_pose = torch.zeros(
-                    [1, model.NUM_BODY_JOINTS * 3], dtype=torch.float32
-                )
-                left_hand_pose = torch.zeros(hand_pose.shape, dtype=torch.float32)
-                right_hand_pose = torch.zeros(hand_pose.shape, dtype=torch.float32)
-            else:
-                body_pose = generate_pose(
-                    simplicity=args.pose_simplicity,
-                    typical_pose=None,
-                    extreme_poses=args.extreme_poses,
-                )
-                left_hand_pose = (torch.rand(hand_pose.shape) - 0.5) * 3
-                right_hand_pose = (torch.rand(hand_pose.shape) - 0.5) * 3
+            left_hand_pose = (torch.rand(hand_pose.shape) - 0.5) * 3
+            right_hand_pose = (torch.rand(hand_pose.shape) - 0.5) * 3
+            
+            body_pose = torch.from_numpy(amass_poses[pose_i, :]).unsqueeze(0)
 
             output = model(
                 betas=betas,
@@ -293,9 +287,6 @@ def main(args):
 
             # Add random noise to the vertices
             # vertices += np.random.normal(0, 0.005, vertices.shape)
-
-            if args.save_default_pose:
-                np.savez("default_body_pose_vertices.npz", vertices=vertices)
 
             # Generate the tri mesh with texture or coloring
             if args.not_textured:
@@ -629,17 +620,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--num-poses",
-        default=1,
+        default=2,
         type=int,
         dest="num_poses",
         help="Number of poses to sample.",
-    )
-    parser.add_argument(
-        "--pose-simplicity",
-        default=1.5,
-        type=float,
-        dest="pose_simplicity",
-        help="Measure of pose simplicty. The higher number, the simpler poses",
     )
     parser.add_argument(
         "--view-preference",
@@ -698,12 +682,6 @@ if __name__ == "__main__":
         help="If True, humans will have naive coloring (no textures)",
     )
     parser.add_argument(
-        "--save-default-pose",
-        action="store_true",
-        default=False,
-        help="If True, will save pose with default params. Used for development.",
-    )
-    parser.add_argument(
         "--uniform-background",
         action="store_true",
         default=False,
@@ -715,15 +693,6 @@ if __name__ == "__main__":
         default=False,
         help="If True, will save annotations in COCO format",
     )
-    parser.add_argument(
-        "--extreme-poses",
-        action="store_true",
-        default=False,
-        help="If True, will save annotations in COCO format",
-    )
-    # parser.add_argument('--gt-type', default='NONE', type=str,
-    #                     choices=['NONE', 'depth', 'openpose', 'cocopose'],
-    #                     help='The type of model to load')
 
     args = parser.parse_args()
 
@@ -742,10 +711,6 @@ if __name__ == "__main__":
         else:
             distance_str = "{:.1f}".format(args.camera_distance)
 
-        if args.pose_simplicity < 0:
-            simplicity_str = "RND"
-        else:
-            simplicity_str = "{:.1f}".format(args.pose_simplicity)
 
         naked_str = ""
         if args.naked:
@@ -753,9 +718,8 @@ if __name__ == "__main__":
 
         args.out_folder = os.path.join(
             "sampled_poses",
-            "distance_{:s}_simplicity_{:s}_view_{}_rotation_{:s}{:s}".format(
+            "AMASS_distance_{:s}_view_{}_rotation_{:s}{:s}".format(
                 distance_str,
-                simplicity_str,
                 args.view_preference,
                 rotation_str,
                 naked_str,
