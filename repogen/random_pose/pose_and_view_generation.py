@@ -1,6 +1,10 @@
 import numpy as np
 import torch
 
+INSPECT_JOINT = "Left knee"
+INSPECT_ROTATION = 1
+INSPECT_MAX = 1
+
 JOINTS_LIMS_DEGS = {
     "Left leg": [
         (-90, 45),
@@ -85,8 +89,6 @@ def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
     }
     body_pose = torch.zeros((1, len(joints) * 3))
 
-    
-
     if typical_pose is None:
         # Generate a completely random pose
         min_limits = []
@@ -135,6 +137,10 @@ def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
         for joint, lims in JOINTS_LIMS_DEGS.items():
             for li, l in enumerate(lims):
                 body_pose[0, joints[joint] * 3 + li] = l[1] / 180 * np.pi
+    
+    elif typical_pose.lower() == "inspect":
+        body_pose = torch.zeros((1, len(joints) * 3))
+        body_pose[0, joints[INSPECT_JOINT] * 3 + INSPECT_ROTATION] = JOINTS_LIMS_DEGS[INSPECT_JOINT][INSPECT_ROTATION][INSPECT_MAX] / 180 * np.pi
 
     elif typical_pose.lower() == "sit":
         body_pose[0, joints["Right knee"] * 3 + 0] = np.pi / 2
