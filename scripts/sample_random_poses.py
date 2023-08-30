@@ -163,7 +163,7 @@ def get_textured_mesh(vertices, texture_path=None, args=None):
 
 
 def get_colored_mesh(vertices, faces, args):
-    with open("models/smplx/smplx_segmentation.json", "r") as fp:
+    with open("models/smplx/SMPLX_segmentation.json", "r") as fp:
         seg_dict = json.load(fp)
 
     # Default (= skin) color
