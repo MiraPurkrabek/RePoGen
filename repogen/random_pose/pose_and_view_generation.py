@@ -56,10 +56,12 @@ JOINTS_LIMS_DEGS = {
 }
 
 
-def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
+def generate_pose(typical_pose=None, simplicity=5, angle_distribution="discontinuous"):
     # Front rotation
     # Counter-clockwise rotation
     # Side bend
+
+    assert angle_distribution.lower() in ["discontinuous", "uniform", "truncated"]
 
     if simplicity < 0:
         simplicity = rnd(1.0, 1.5)
@@ -106,10 +108,13 @@ def generate_pose(typical_pose=None, simplicity=5, extreme_poses=False):
         min_limits = torch.Tensor(min_limits) / simplicity
         max_limits = torch.Tensor(max_limits) / simplicity
 
-        if extreme_poses:
+        if angle_distribution.lower() == "uniform":
             # Sample poses uniformly from the limits - much more extreme poses
             joints_rng = max_limits - min_limits
             random_angles = torch.rand((len(joints) * 3)) * joints_rng + min_limits
+        elif angle_distribution.lower() == "truncated":
+            random_angles = [truncated_normal_dist(0, min_limits[i], max_limits[i]) for i in range(len(joints) * 3)]
+            random_angles = torch.Tensor(random_angles)
         else:
             # Generate random angles
             random_angles = torch.normal(
@@ -360,3 +365,19 @@ def rnd(a_min=0, a_max=1):
 
 def random_sgn():
     return -1 if np.random.rand() < 0.5 else 1
+
+def truncated_normal_dist(mean, min_val, max_val, n_samples=1):
+    further_bound = max(abs(min_val - mean), abs(max_val - mean)) / 1.5
+    scale = further_bound / 2.0    
+    
+    samples = []
+    
+    while len(samples) < n_samples:
+        # Sample from a normal distribution with given mean and standard deviation
+        sample = np.random.normal(loc=mean, scale=scale)
+        
+        # Reject samples outside of the desired bounds
+        if sample >= min_val and sample <= max_val:
+            samples.append(sample)
+    
+    return samples[:n_samples]

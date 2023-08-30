@@ -43,6 +43,13 @@ try:
 except ImportError:
     HAS_UMAP = False
 
+DO_TSNE = True
+DO_UMAP = False
+DO_CLOSEST_POSE = False
+DO_KMEANS = False
+DO_JOINTS_RANGES = False
+DO_SMPL_ERROR = False
+
 def main():
     
     AMASS_PATH = "../AMASS/data/"
@@ -117,10 +124,10 @@ def main():
     all_body_poses_deg = all_body_poses / np.pi * 180
 
     # Randomly sample poses from the AMASS dataset for finetuning
-    for n in [500, 1000, 3000]:
-        sampled_poses = all_body_poses_deg[np.random.choice(len(all_body_poses_deg), n, replace=False), :]
-        print("Saving randomly sampled {:d} poses...".format(n))
-        np.save("AMASS_stats/sampled_poses_{:d}.npy".format(n), sampled_poses)
+    # for n in [500, 1000, 3000]:
+    #     sampled_poses = all_body_poses_deg[np.random.choice(len(all_body_poses_deg), n, replace=False), :]
+    #     print("Saving randomly sampled {:d} poses...".format(n))
+    #     np.save("AMASS_stats/sampled_poses_{:d}.npy".format(n), sampled_poses)
 
     try:
         synth_poses = np.load("AMASS_stats/synth_poses.npy")
@@ -135,6 +142,7 @@ def main():
         ], axis=0)
         np.save("AMASS_stats/synth_poses.npy", synth_poses)
         synth_poses_deg = synth_poses / np.pi * 180
+    synth_poses_deg = synth_poses_deg[:len(all_body_poses_deg)//7]
     
     print(all_body_poses_deg.shape, synth_poses_deg.shape)
     
@@ -142,77 +150,84 @@ def main():
 
     os.makedirs("AMASS_stats", exist_ok=True)
 
-    try:
-        X_embedded = np.load("AMASS_stats/tsne.npy")
-        synth_X_embedded = np.load("AMASS_stats/synth_tsne.npy")
-    except FileNotFoundError:
+    if DO_TSNE:
         X_embedded = None
-        synth_X_embedded = None
 
-    # t-SNE projection
-    if X_embedded is None:
-        print("Projecting poses to 2D space using the t-SNE...")
-        tsne = TSNE(
-            n_components=2,
-            learning_rate='auto',
-            init='random',
-            perplexity=3,
-        )
-        X_embedded = tsne.fit_transform(poses_to_draw)
-        synth_X_embedded = X_embedded[-len(synth_poses_deg):]
-        X_embedded = X_embedded[:-len(synth_poses_deg)]
+        # try:
+        #     X_embedded = np.load("AMASS_stats/tsne.npy")
+        #     synth_X_embedded = np.load("AMASS_stats/synth_tsne.npy")
+        # except FileNotFoundError:
+        #     X_embedded = None
+        #     synth_X_embedded = None
 
-        np.save("AMASS_stats/tsne.npy", X_embedded)
-        np.save("AMASS_stats/synth_tsne.npy", synth_X_embedded)
+        # t-SNE projection
+        if X_embedded is None:
+            print("Projecting poses to 2D space using the t-SNE...")
+            tsne = TSNE(
+                n_components=2,
+                learning_rate='auto',
+                init='random',
+                perplexity=3,
+            )
+            X_embedded = tsne.fit_transform(poses_to_draw)
+            synth_X_embedded = X_embedded[-len(synth_poses_deg):]
+            X_embedded = X_embedded[:-len(synth_poses_deg)]
 
-    filepaths = np.array(filepaths)
-    if HAS_PLOTLY:
-        traces = []
-        for dataset_name in np.unique(datasets):
-            idx = datasets == dataset_name
-            trace_amass = go.Scatter(
-                x=X_embedded[idx, 0],
-                y=X_embedded[idx, 1],
-                name=dataset_name.upper(),
+            # np.save("AMASS_stats/tsne.npy", X_embedded)
+            # np.save("AMASS_stats/synth_tsne.npy", synth_X_embedded)
+
+        filepaths = np.array(filepaths)
+        if HAS_PLOTLY:
+            traces = []
+
+            datasets = np.array(["AMASS" for _ in range(len(datasets))])
+
+            for dataset_name in np.unique(datasets):
+                idx = datasets == dataset_name
+                trace_amass = go.Scatter(
+                    x=X_embedded[idx, 0],
+                    y=X_embedded[idx, 1],
+                    name=dataset_name.upper(),
+                    mode="markers",
+                    marker=dict(
+                        size=5,
+                        opacity=0.5,
+                        color="blue",
+                    ),
+                    text=filepaths,
+                )
+                traces.append(trace_amass)
+            trace_synth = go.Scatter(
+                x=synth_X_embedded[:, 0],
+                y=synth_X_embedded[:, 1],
+                name="RePoGen",
                 mode="markers",
                 marker=dict(
-                    size=5,
+                    size=7,
                     opacity=0.5,
+                    color="red",
                 ),
-                text=filepaths,
+                marker_symbol="cross",
             )
-            traces.append(trace_amass)
-        trace_synth = go.Scatter(
-            x=synth_X_embedded[:, 0],
-            y=synth_X_embedded[:, 1],
-            name="RePoGen",
-            mode="markers",
-            marker=dict(
-                size=7,
-                opacity=0.5,
-                color="red",
-            ),
-            marker_symbol="cross",
-        )
-        traces.insert(0, trace_synth)
+            traces.insert(0, trace_synth)
 
-        fig = go.Figure(data=traces)
-        fig.write_html("AMASS_stats/tsne.html")
-        print("Poses projected.")
-    else:
-        for filepath in np.unique(filepaths):
-            idx = filepaths == filepath
-            plt.scatter(X_embedded[idx, 0], X_embedded[idx, 1], marker="o", alpha=0.3)#, color="blue")
-        # plt.scatter(X_embedded[:, 0], X_embedded[:, 1], marker="o", color="blue", alpha=0.5)
-        plt.scatter(synth_X_embedded[:, 0], synth_X_embedded[:, 1], color="red", marker="x", alpha=0.3)
-        plt.grid(True)
-        plt.legend(np.unique(filepaths).tolist() + ["RePoGen"])
-        plt.title("t-SNE projection of the poses")    
-        plt.savefig("AMASS_stats/tsne.png")
-        print("Poses projected.")
+            fig = go.Figure(data=traces)
+            fig.write_html("AMASS_stats/tsne.html")
+            print("Poses projected.")
+        else:
+            for filepath in np.unique(filepaths):
+                idx = filepaths == filepath
+                plt.scatter(X_embedded[idx, 0], X_embedded[idx, 1], marker="o", alpha=0.3)#, color="blue")
+            # plt.scatter(X_embedded[:, 0], X_embedded[:, 1], marker="o", color="blue", alpha=0.5)
+            plt.scatter(synth_X_embedded[:, 0], synth_X_embedded[:, 1], color="red", marker="x", alpha=0.3)
+            plt.grid(True)
+            plt.legend(np.unique(filepaths).tolist() + ["RePoGen"])
+            plt.title("t-SNE projection of the poses")    
+            plt.savefig("AMASS_stats/tsne.png")
+            print("Poses projected.")
 
     # Umap projection
-    if HAS_UMAP:
+    if HAS_UMAP and DO_UMAP:
         print("Projecting poses to 2D space using the UMAP...")
         reducer = umap.UMAP()
         X_embedded = reducer.fit_transform(poses_to_draw)
@@ -254,135 +269,173 @@ def main():
             print("Poses projected.")
 
 
-    # K-means clustering
-    print("Clustering poses using the K-means...")
-    kmeans = KMeans(n_clusters=10, random_state=0).fit(all_body_poses_deg.reshape((-1, 63)).astype(np.float32))
-    centers = kmeans.cluster_centers_
-    distances = np.linalg.norm(poses_to_draw.reshape((-1, 63)).astype(np.float32)[:, None, :] - centers[None, :, :], axis=2)
-    distances = np.min(distances, axis=1)
-    amass_distances = distances[:-len(synth_poses_deg)]
-    synth_distances = distances[-len(synth_poses_deg):]
-    dist_threshold = np.mean(amass_distances) + 2 * np.std(amass_distances)
-    print("Poses clustered.")
+    if DO_KMEANS:
+        # K-means clustering
+        print("Clustering poses using the K-means...")
+        kmeans = KMeans(n_clusters=10, random_state=0).fit(all_body_poses_deg.reshape((-1, 63)).astype(np.float32))
+        centers = kmeans.cluster_centers_
+        distances = np.linalg.norm(poses_to_draw.reshape((-1, 63)).astype(np.float32)[:, None, :] - centers[None, :, :], axis=2)
+        distances = np.min(distances, axis=1)
+        amass_distances = distances[:-len(synth_poses_deg)]
+        synth_distances = distances[-len(synth_poses_deg):]
+        dist_threshold = np.mean(amass_distances) + 2 * np.std(amass_distances)
+        print("Poses clustered.")
 
-    print("K-means of RePoGen poses: {:5.1f}, {:5.1f}, {:5.1f}\t{:4.1f}% of all poses is rare".format(
-        np.min(synth_distances), np.mean(synth_distances), np.max(synth_distances),
-        100*np.sum(synth_distances > dist_threshold)/len(synth_distances),
-    ))
-    print("K-means of AMASS poses  : {:5.1f}, {:5.1f}, {:5.1f}\t{:4.1f}% of all poses is rare".format(
-        np.min(amass_distances), np.mean(amass_distances), np.max(amass_distances),
-        100*np.sum(amass_distances > dist_threshold)/len(amass_distances),
-    ))
+        print("K-means of RePoGen poses: {:5.1f}, {:5.1f}, {:5.1f}\t{:4.1f}% of all poses is rare".format(
+            np.min(synth_distances), np.mean(synth_distances), np.max(synth_distances),
+            100*np.sum(synth_distances > dist_threshold)/len(synth_distances),
+        ))
+        print("K-means of AMASS poses  : {:5.1f}, {:5.1f}, {:5.1f}\t{:4.1f}% of all poses is rare".format(
+            np.min(amass_distances), np.mean(amass_distances), np.max(amass_distances),
+            100*np.sum(amass_distances > dist_threshold)/len(amass_distances),
+        ))
 
-    # Find the RepoGen pose that has the highest distance to the closest AMASS pose
-    try:
-        m = np.load("AMASS_stats/distance_matrix.npy")
-    except FileNotFoundError:
-        print("Comptuing the distance matrix...")
-        m = distance_matrix(synth_poses_deg, all_body_poses_deg)
-        np.save("AMASS_stats/distance_matrix.npy", m)
-    print("Distance matrix shape:", m.shape)
-    min_distances_idx = np.argmin(m, axis=1)
-    min_distances = np.min(m, axis=1)
-    max_distance_idx = np.argmax(min_distances)
-    max_distance = np.max(min_distances)
-    print("The RepoGen pose that has the highest distance to the closest AMASS pose is pose {:d} with distance {:5.1f} to {:d} from {:s} dataset".format(
-        max_distance_idx,
-        max_distance,
-        min_distances_idx[max_distance_idx],
-        datasets[min_distances_idx[max_distance_idx]],
-    ))
-
-    # Render and save the two poses
-    max_distance_idx_sorted = np.argsort(min_distances)[::-1]
-    os.makedirs("AMASS_stats/pose_comparison", exist_ok=True)
-    camera_pose = np.array([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 1, 2],
-        [0, 0, 0, 1],
-    ])
-    model = repogen.create(
-        "models",
-        model_type="smplx",
-        gender="male",
-        use_face_contour=False,
-        num_betas=10,
-        num_expression_coeffs=10,
-        ext="npz",
-    )
-    print("Rendering the closest poses...")
-    for i in tqdm(range(20)):
-        max_distance_idx = max_distance_idx_sorted[i]
-
-        max_distance_pose = synth_poses_deg[max_distance_idx]#.reshape((-1, 3))
-        max_distance_amass_pose = all_body_poses_deg[min_distances_idx[max_distance_idx]]#.reshape((-1, 3))
-        
-        max_distance_pose = max_distance_pose / 180 * np.pi
-        max_distance_amass_pose = max_distance_amass_pose / 180 * np.pi
-
-        # np.save("AMASS_stats/max_distance_pose.npy", max_distance_pose)
-        # np.save("AMASS_stats/max_distance_amass_pose.npy", max_distance_amass_pose)
-
-        # Render the poses
-        # camera_pose = random_camera_pose(view_preference="FRONT", distance=2.0)
-        out_img = show_closest_pose(
-            max_distance_pose,
-            max_distance_amass_pose,
-            camera_pose,
-            model,
-            pose1_source="RePoGen",
-            pose2_source=datasets[min_distances_idx[max_distance_idx]],
+    if DO_CLOSEST_POSE or DO_SMPL_ERROR:
+        camera_pose = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 2],
+            [0, 0, 0, 1],
+        ])
+        model = repogen.create(
+            "models",
+            model_type="smplx",
+            gender="male",
+            use_face_contour=False,
+            num_betas=10,
+            num_expression_coeffs=10,
+            ext="npz",
         )
-        out_img = cv2.putText(
-                out_img,
-                "{:.1f}".format(min_distances[max_distance_idx]),
-                (1950, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255, 255, 255),
-                1,
-                cv2.LINE_AA,
-            )
-        cv2.imwrite("AMASS_stats/pose_comparison/max_distance_poses_{:02d}.png".format(i), out_img)
-    for i in tqdm(range(20)):
-        max_distance_idx = max_distance_idx_sorted[-i-1]
-
-        max_distance_pose = synth_poses_deg[max_distance_idx]#.reshape((-1, 3))
-        max_distance_amass_pose = all_body_poses_deg[min_distances_idx[max_distance_idx]]#.reshape((-1, 3))
-        
-        max_distance_pose = max_distance_pose / 180 * np.pi
-        max_distance_amass_pose = max_distance_amass_pose / 180 * np.pi
-
-        # np.save("AMASS_stats/max_distance_pose.npy", max_distance_pose)
-        # np.save("AMASS_stats/max_distance_amass_pose.npy", max_distance_amass_pose)
-
-        # Render the poses
-        # camera_pose = random_camera_pose(view_preference="FRONT", distance=2.0)
-        out_img = show_closest_pose(
-            max_distance_pose,
-            max_distance_amass_pose,
-            camera_pose,
-            model,
-            pose1_source="RePoGen",
-            pose2_source=datasets[min_distances_idx[max_distance_idx]],
-        )
-        out_img = cv2.putText(
-                out_img,
-                "{:.1f}".format(min_distances[max_distance_idx]),
-                (1950, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (255, 255, 255),
-                1,
-                cv2.LINE_AA,
-            )
-        cv2.imwrite("AMASS_stats/pose_comparison/min_distance_poses_{:02d}.png".format(i), out_img)
     
-    print("Saving histograms for each joint...")
-    print_joints_ranges(all_body_poses_deg, save_dir="AMASS_stats/joints_ranges_amass")
-    print_joints_ranges(synth_poses_deg, save_dir="AMASS_stats/joints_ranges_synth")
-    print("Histograms saved.")
+    if DO_CLOSEST_POSE:
+        # Find the RepoGen pose that has the highest distance to the closest AMASS pose
+        try:
+            m = np.load("AMASS_stats/distance_matrix.npy")
+        except FileNotFoundError:
+            print("Comptuing the distance matrix...")
+            m = distance_matrix(synth_poses_deg, all_body_poses_deg)
+            np.save("AMASS_stats/distance_matrix.npy", m)
+        print("Distance matrix shape:", m.shape)
+        min_distances_idx = np.argmin(m, axis=1)
+        min_distances = np.min(m, axis=1)
+        max_distance_idx = np.argmax(min_distances)
+        max_distance = np.max(min_distances)
+        print("The RepoGen pose that has the highest distance to the closest AMASS pose is pose {:d} with distance {:5.1f} to {:d} from {:s} dataset".format(
+            max_distance_idx,
+            max_distance,
+            min_distances_idx[max_distance_idx],
+            datasets[min_distances_idx[max_distance_idx]],
+        ))
+
+        # Render and save the two poses
+        max_distance_idx_sorted = np.argsort(min_distances)[::-1]
+        os.makedirs("AMASS_stats/pose_comparison", exist_ok=True)
+        print("Rendering the closest poses...")
+        for i in tqdm(range(20)):
+            max_distance_idx = max_distance_idx_sorted[i]
+
+            max_distance_pose = synth_poses_deg[max_distance_idx]#.reshape((-1, 3))
+            max_distance_amass_pose = all_body_poses_deg[min_distances_idx[max_distance_idx]]#.reshape((-1, 3))
+            
+            max_distance_pose = max_distance_pose / 180 * np.pi
+            max_distance_amass_pose = max_distance_amass_pose / 180 * np.pi
+
+            # np.save("AMASS_stats/max_distance_pose.npy", max_distance_pose)
+            # np.save("AMASS_stats/max_distance_amass_pose.npy", max_distance_amass_pose)
+
+            # Render the poses
+            # camera_pose = random_camera_pose(view_preference="FRONT", distance=2.0)
+            out_img = show_closest_pose(
+                max_distance_pose,
+                max_distance_amass_pose,
+                camera_pose,
+                model,
+                pose1_source="RePoGen",
+                pose2_source=datasets[min_distances_idx[max_distance_idx]],
+            )
+            out_img = cv2.putText(
+                    out_img,
+                    "{:.1f}".format(min_distances[max_distance_idx]),
+                    (1950, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+            cv2.imwrite("AMASS_stats/pose_comparison/max_distance_poses_{:02d}.png".format(i), out_img)
+        for i in tqdm(range(20)):
+            max_distance_idx = max_distance_idx_sorted[-i-1]
+
+            max_distance_pose = synth_poses_deg[max_distance_idx]#.reshape((-1, 3))
+            max_distance_amass_pose = all_body_poses_deg[min_distances_idx[max_distance_idx]]#.reshape((-1, 3))
+            
+            max_distance_pose = max_distance_pose / 180 * np.pi
+            max_distance_amass_pose = max_distance_amass_pose / 180 * np.pi
+
+            # np.save("AMASS_stats/max_distance_pose.npy", max_distance_pose)
+            # np.save("AMASS_stats/max_distance_amass_pose.npy", max_distance_amass_pose)
+
+            # Render the poses
+            # camera_pose = random_camera_pose(view_preference="FRONT", distance=2.0)
+            out_img = show_closest_pose(
+                max_distance_pose,
+                max_distance_amass_pose,
+                camera_pose,
+                model,
+                pose1_source="RePoGen",
+                pose2_source=datasets[min_distances_idx[max_distance_idx]],
+            )
+            out_img = cv2.putText(
+                    out_img,
+                    "{:.1f}".format(min_distances[max_distance_idx]),
+                    (1950, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+            cv2.imwrite("AMASS_stats/pose_comparison/min_distance_poses_{:02d}.png".format(i), out_img)
+    
+    if DO_SMPL_ERROR:
+        # Render and save some AMASS poses with the weiredt left knee angle
+        joint_idx = 17
+        left_knee_idxs = np.argsort(all_body_poses_deg[:, joint_idx*3+1])
+        os.makedirs("AMASS_stats/left_knee", exist_ok=True)
+        print("Rendering the weirdest left knee poses...")
+        for i in tqdm(range(5), ascii=True):
+            idx = left_knee_idxs[i]
+            pose = all_body_poses_deg[idx]
+            pose = pose / 180 * np.pi
+            out_img = show_closest_pose(
+                pose,
+                pose,
+                camera_pose,
+                model,
+                pose1_source=datasets[idx],
+                pose2_source=str(all_body_poses_deg[idx, joint_idx*3+1]),
+            )
+            cv2.imwrite("AMASS_stats/left_knee/left_knee_min_{:02d}.png".format(i), out_img)
+        for i in tqdm(range(5), ascii=True):
+            idx = left_knee_idxs[-i-1]
+            pose = all_body_poses_deg[idx]
+            pose = pose / 180 * np.pi
+            out_img = show_closest_pose(
+                pose,
+                pose,
+                camera_pose,
+                model,
+                pose1_source=datasets[idx],
+                pose2_source=str(all_body_poses_deg[idx, joint_idx*3+1]),
+            )
+            cv2.imwrite("AMASS_stats/left_knee/left_knee_max_{:02d}.png".format(i), out_img)
+
+    if DO_JOINTS_RANGES:
+        print("Saving histograms for each joint...")
+        print_joints_ranges(all_body_poses_deg, save_dir="AMASS_stats/joints_ranges_amass")
+        print_joints_ranges(synth_poses_deg, save_dir="AMASS_stats/joints_ranges_synth")
+        print("Histograms saved.")
 
 
 def show_closest_pose(pose1, pose2, camera_pose, model, pose1_source=None, pose2_source=None):
@@ -406,7 +459,8 @@ def show_closest_pose(pose1, pose2, camera_pose, model, pose1_source=None, pose2
     
     imgs = []
     for v, src in zip([vertices1, vertices2], [pose1_source, pose2_source]):
-        scene = pyrender.Scene(bg_color=(100, 100, 100))
+        # scene = pyrender.Scene(bg_color=(100, 100, 100))
+        scene = pyrender.Scene(bg_color=(255, 255, 255))
         tri_mesh = trimesh.Trimesh(v, model.faces, vertex_colors=(100, 100, 230))
         mesh = pyrender.Mesh.from_trimesh(tri_mesh)
         scene.add(mesh)
@@ -429,7 +483,7 @@ def show_closest_pose(pose1, pose2, camera_pose, model, pose1_source=None, pose2
                 (10, 50),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 2,
-                (255, 255, 255),
+                (0, 0, 0),
                 3,
                 cv2.LINE_AA,
             )

@@ -264,10 +264,15 @@ def main(args):
                 left_hand_pose = torch.zeros(hand_pose.shape, dtype=torch.float32)
                 right_hand_pose = torch.zeros(hand_pose.shape, dtype=torch.float32)
             else:
+                angle_distribution = "discontinuous"
+                if args.extreme_poses:
+                    angle_distribution = "uniform"
+                elif args.truncated_gaussian:
+                    angle_distribution = "truncated"
                 body_pose = generate_pose(
                     simplicity=args.pose_simplicity,
                     typical_pose=None,
-                    extreme_poses=args.extreme_poses,
+                    angle_distribution=angle_distribution,
                 )
                 left_hand_pose = (torch.rand(hand_pose.shape) - 0.5) * 3
                 right_hand_pose = (torch.rand(hand_pose.shape) - 0.5) * 3
@@ -717,6 +722,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--extreme-poses",
+        action="store_true",
+        default=False,
+        help="If True, will save annotations in COCO format",
+    )
+    parser.add_argument(
+        "--truncated-gaussian",
         action="store_true",
         default=False,
         help="If True, will save annotations in COCO format",
