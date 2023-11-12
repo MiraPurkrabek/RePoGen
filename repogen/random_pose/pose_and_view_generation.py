@@ -64,7 +64,14 @@ def generate_pose(typical_pose=None, simplicity=5, angle_distribution="discontin
     assert angle_distribution.lower() in ["discontinuous", "uniform", "truncated"]
 
     if simplicity < 0:
-        simplicity = rnd(1.0, 1.5)
+        if angle_distribution.lower() == "uniform":
+            # simplicity = rnd_uniform(0.9, 2.0)
+            simplicity = np.random.exponential(scale=1.0) + 0.9
+        elif angle_distribution.lower() == "truncated":
+            simplicity = 2.0 - rnd_uniform(0.0, 0.5)
+            simplicity = abs(simplicity)
+        elif angle_distribution.lower() == "discontinuous":
+            simplicity = rnd_uniform(1.0, 1.5)
 
     joints = {
         "Left leg": 0,
@@ -169,8 +176,8 @@ def generate_pose(typical_pose=None, simplicity=5, angle_distribution="discontin
 
 def random_3d_position_polar(distance=2.0, view_preference=None):
     if distance < 0:
-        distance = rnd(1.5, 5.0)
-        # distance = rnd(1.5, 8.0)
+        distance = rnd_uniform(1.5, 5.0)
+        # distance = rnd_uniform(1.5, 8.0)
 
     # Noise is 20°
     noise_size = 20 / 180 * np.pi
@@ -232,8 +239,8 @@ def random_3d_position_polar(distance=2.0, view_preference=None):
     # [ 0, -1,  0] - BOTTOM view
     # [ 1,  0,  0] - LEFT view
     # [-1,  0,  0] - RIGHT view
-    alpha = alpha_mean + rnd(-alpha_range, alpha_range)
-    beta = beta_mean + rnd(-beta_range, beta_range)
+    alpha = alpha_mean + rnd_uniform(-alpha_range, alpha_range)
+    beta = beta_mean + rnd_uniform(-beta_range, beta_range)
 
     return alpha, beta, distance
 
@@ -242,8 +249,8 @@ def random_point_on_sphere(distance=2.0):
     """The projection to the sphere method"""
 
     if distance < 0:
-        distance = rnd(1.5, 5.0)
-        # distance = rnd(1.5, 8.0)
+        distance = rnd_uniform(1.5, 5.0)
+        # distance = rnd_uniform(1.5, 8.0)
 
     # Generate vector big enough to avoid precision error
     pt = np.random.normal(size=3)
@@ -288,7 +295,7 @@ def random_camera_pose(
     distance=3, view_preference=None, rotation=0, return_vectors=False
 ):
     if rotation < 0:
-        rotation = rnd(0, 360)
+        rotation = rnd_uniform(0, 360)
 
     # Convert to radians
     rotation = rotation / 180 * np.pi
@@ -332,7 +339,7 @@ def random_camera_pose(
     )
 
     # theta = np.random.rand() * 2*rotation - rotation
-    theta = random_sgn() * rotation + random_sgn() * rnd(0, np.pi / 5)
+    theta = random_sgn() * rotation + random_sgn() * rnd_uniform(0, np.pi / 5)
     rot_z = np.array(
         [
             [np.cos(theta), -np.sin(theta), 0],
@@ -358,13 +365,18 @@ def random_camera_pose(
         return pose
 
 
-def rnd(a_min=0, a_max=1):
+def rnd_uniform(a_min=0, a_max=1):
     rng = a_max - a_min
     return np.random.rand() * rng + a_min
 
 
+def rnd_normal(mean=0, std=1):
+    return np.random.normal(loc=mean, scale=std)
+
+
 def random_sgn():
     return -1 if np.random.rand() < 0.5 else 1
+
 
 def truncated_normal_dist(mean, min_val, max_val, n_samples=1):
     further_bound = max(abs(min_val - mean), abs(max_val - mean)) / 1.5
