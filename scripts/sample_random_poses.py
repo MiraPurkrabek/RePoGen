@@ -124,13 +124,13 @@ def get_textured_mesh(vertices, texture_path=None, args=None):
         "textures",
         texture_folder,
         "mappings",
-        "repogen_MALE_indices.npz",
+        "smplx_MALE_indices.npz",
     )
     obj_path = os.path.join(
         "textures",
         texture_folder,
         "mappings",
-        "repogen_UV.obj",
+        "smplx_UV.obj",
     )
 
     # Load the texture image with OpenCV
@@ -163,7 +163,7 @@ def get_textured_mesh(vertices, texture_path=None, args=None):
 
 
 def get_colored_mesh(vertices, faces, args):
-    with open("models/repogen/repogen_segmentation.json", "r") as fp:
+    with open("models/smplx/smplx_segmentation.json", "r") as fp:
         seg_dict = json.load(fp)
 
     # Default (= skin) color
@@ -573,9 +573,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--model-type",
-        default="repogen",
+        default="smplx",
         type=str,
-        choices=["smpl", "smplh", "repogen", "mano", "flame"],
+        choices=["smpl", "smplh", "smplx", "mano", "flame"],
         help="The type of model to load",
     )
     parser.add_argument(
