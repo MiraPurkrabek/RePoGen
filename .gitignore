@@ -125,3 +125,6 @@ venv.bak/
 # Archive and logs
 logs/
 archive/
+
+# Ignore generated data
+sampled_poses/
