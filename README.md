@@ -41,6 +41,7 @@ The *RePoGen* is installed from the source:
 git clone https://github.com/MiraPurkrabek/RePoGen
 python setup.py install
 ```
+The code requires psbody.mesh library from MPI-IS ([link](https://github.com/MPI-IS/mesh)). For easiest installation, please use [our fork of the repository](https://github.com/MiraPurkrabek/mesh) and install it from source. For more details, see issue https://github.com/MiraPurkrabek/RePoGen/issues/12.
 
 You also have to download the SMPL-X model. See the instructions [here](https://github.com/vchoutas/smplx#downloading-the-model).
 
