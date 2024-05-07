@@ -160,11 +160,11 @@ JOINT_NAMES = [
 
 COCO_JOINTS = {
     "nose": {"idx": 75 - 20, "range": 300},  # 0
-    "left eye": {"idx": 77 - 20, "range": 700},  # 1
-    "right eye": {"idx": 76 - 20, "range": 700},  # 2
-    "left ear": {"idx": 79 - 20, "range": 500},  # 3
-    "right ear": {"idx": 78 - 20, "range": 500},  # 4
-    "left shoulder": {"idx": 36 - 20, "range": 200},  # 5
+    "left_eye": {"idx": 77 - 20, "range": 700},  # 1
+    "right_eye": {"idx": 76 - 20, "range": 700},  # 2
+    "left_ear": {"idx": 79 - 20, "range": 500},  # 3
+    "right_ear": {"idx": 78 - 20, "range": 500},  # 4
+    "left_shoulder": {"idx": 36 - 20, "range": 200},  # 5
     "right_shoulder": {"idx": 37 - 20, "range": 200},  # 6
     "left_elbow": {"idx": 38 - 20, "range": 150},  # 7
     "right_elbow": {"idx": 39 - 20, "range": 150},  # 8
