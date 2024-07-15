@@ -76,12 +76,14 @@ The code was implemented by [Miroslav Purkrábek]([htt]https://mirapurkrabek.git
 For questions, please use the Issues of Discussion.
 
 ```
-@misc{purkrábek2023improving,
-  title={Improving 2D Human Pose Estimation across Unseen Camera Views with Synthetic Data}, 
-  author={Miroslav Purkrábek and Jiří Matas},
-  year={2023},
-  eprint={2307.06737},
-  archivePrefix={arXiv},
-  primaryClass={cs.CV}
-}
+@INPROCEEDINGS{purkrabek2024improving,
+  author={Purkrabek, Miroslav and Matas, Jiri},
+  booktitle={2024 IEEE 18th International Conference on Automatic Face and Gesture Recognition (FG)}, 
+  title={Improving 2D Human Pose Estimation in Rare Camera Views with Synthetic Data}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={1-9},
+  keywords={Space vehicles;Training;Three-dimensional displays;Pose estimation;Gesture recognition;Data models;Orbits},
+  doi={10.1109/FG59268.2024.10582011}}
 ``````
